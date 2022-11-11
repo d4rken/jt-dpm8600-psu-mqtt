@@ -220,7 +220,7 @@ void loop() {
 
     client.loop();
 
-    if (lastCommandUpdate != lastCommandCheck && (millis() - lastCommands) > 1000) {
+    if (lastCommandUpdate != lastCommandCheck && (millis() - lastCommands) > 500) {
         digitalWrite(LED_BUILTIN, LOW);
         Serial.println("Checking for new commands...");
 
@@ -233,7 +233,7 @@ void loop() {
         digitalWrite(LED_BUILTIN, HIGH);
     }
 
-    if ((millis() - lastStats) > 5000) {
+    if ((millis() - lastStats) > 30 * 1000) {
         digitalWrite(LED_BUILTIN, LOW);
         Serial.println("Updating statistics...");
         updateSystemStats();
