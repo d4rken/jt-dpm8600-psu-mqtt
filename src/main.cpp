@@ -23,6 +23,7 @@ DPM8600 converter(1);
 
 char buffer[256];
 
+bool hasInitSettings = false;
 float desiredMaxCurrent = 0;
 float desiredMaxVoltage = 0;
 bool desiredPowerState = false;
@@ -91,6 +92,9 @@ void processCommands() {
     Serial.println("### START: processCommands ###");
 
     bool currentPowerState = converter.read('p') == 1;
+
+    if (!hasInitSettings) desiredPowerState = currentPowerState;
+
     if (desiredPowerState != currentPowerState) {
         Serial.println("Setting power state to " + String(desiredPowerState));
 
@@ -105,8 +109,11 @@ void processCommands() {
     }
 
     float currentMaxCurrent = converter.read('c');
+
     Serial.println("Current max current set to " + String(currentMaxCurrent));
     if (desiredMaxCurrent > 15) desiredMaxCurrent = 15;
+
+    if (!hasInitSettings) desiredMaxCurrent = currentMaxCurrent;
 
     if (desiredMaxCurrent != currentMaxCurrent) {
         bool success = converter.write('c', desiredMaxCurrent);
@@ -123,6 +130,8 @@ void processCommands() {
     Serial.println("Current max voltage set to " + String(currentMaxVoltage));
     if (desiredMaxVoltage > 30) desiredMaxVoltage = 30;
 
+    if (!hasInitSettings) desiredMaxVoltage = currentMaxVoltage;
+
     if (desiredMaxVoltage != currentMaxVoltage) {
         bool success = converter.write('v', desiredMaxVoltage);
         if (success) {
@@ -133,6 +142,8 @@ void processCommands() {
     } else {
         Serial.println("Desired max current already set to " + String(desiredMaxCurrent));
     }
+
+    hasInitSettings = true;
 
     Serial.println("### END: processCommands ###");
 }
