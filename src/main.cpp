@@ -145,7 +145,7 @@ void processCommands() {
             }
             delay(600);
         } else {
-            Serial.println("Desired max voltage already set to " + String(desiredMaxCurrent));
+            Serial.println("Desired max voltage already set to " + String(desiredMaxVoltage));
         }
     }
 
