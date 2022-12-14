@@ -149,6 +149,22 @@ void processCommands() {
         }
     }
 
+    float currentMode = converter.read('s');
+    if (currentMode != -13) {
+        Serial.println("Current mode set to " + String(currentMode));
+        if (currentMode != 0) {
+            bool success = converter.write('s', 0);
+            if (success) {
+                Serial.println("New mode set to 0");
+            } else {
+                Serial.println("Failed to set new mode to 0");
+            }
+            delay(600);
+        } else {
+            Serial.println("Desired mode already set to 0");
+        }
+    }
+
     hasInitSettings = true;
 
     Serial.println("### END: processCommands ###");
@@ -271,8 +287,8 @@ void loop() {
         digitalWrite(LED_BUILTIN, HIGH);
     }
 
-    //for (int i = 0; i < 40; i++) {
-    //    String result = converter.readRaw(String(i));
-    //    Serial.println("Read(" + String(i) + ") was " + result);
-    //}
+    // for (int i = 0; i < 40; i++) {
+    //     String result = converter.readRaw(String(i));
+    //     Serial.println("Read(" + String(i) + ") was " + result);
+    // }
 }

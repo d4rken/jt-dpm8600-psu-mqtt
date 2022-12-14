@@ -74,6 +74,11 @@ int DPM8600::write(char cmd, float value) {
             x = floor(value * 100);
             command = "10";
             break;
+        case 's':
+        case 'S':
+            x = value;
+            command = "32";
+            break;
         default:
             if (value != 0 && value != 1) {
                 return -20;
@@ -107,6 +112,9 @@ int DPM8600::write(char cmd, float value) {
 
     if (!completed) {
         switch (cmd) {
+            case 's':
+            case 'S':
+                return -20;  // Setting mode error
             case 'c':
             case 'C':
                 return -21;  // Setting current error
