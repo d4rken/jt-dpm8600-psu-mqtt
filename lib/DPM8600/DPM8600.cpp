@@ -20,7 +20,7 @@ DPM8600::DPM8600(int8_t address) {
 int DPM8600::begin(SoftwareSerial *serial, int8_t maxRetry) {
     _serial = serial;
     _maxRetry = maxRetry;
-    static_cast<SoftwareSerial *>(_serial)->begin(9600);
+    static_cast<SoftwareSerial *>(_serial)->begin(4800);
     float maxCurrent = read('m');
     return (maxCurrent > 0) ? 1 : -1;
 }
@@ -121,6 +121,33 @@ int DPM8600::write(char cmd, float value) {
     }
 }
 
+String DPM8600::readRaw(String command) {
+    int8_t retry = 0;
+    bool completed = false;
+    String response = "";
+
+    do {
+        // Clear response
+        // response = "";
+
+        // Send a command
+        _serial->println(":" + _address + "r" + command + "=0,");
+
+        // Listen for a reply
+        completed = listen(response);
+
+        // Add a retry
+        retry += 1;
+
+    } while ((!completed) && (retry < _maxRetry));  // Stop running either when data received or max attempts happened.
+
+    if (!completed) {
+       return "error";
+    }
+
+    return response;
+}
+
 float DPM8600::read(char cmd) {
     int8_t retry = 0;
     bool completed = false;
@@ -148,7 +175,11 @@ float DPM8600::read(char cmd) {
         case 'm':
         case 'M':
             command = "01";
-            break;  // Max Current
+            break;  // Max device Current
+        case 'l':
+        case 'L':
+            command = "11";
+            break;  // Current ampere limit
         default:
             command = "33";
             break;  // Internal temperature
@@ -186,8 +217,11 @@ float DPM8600::read(char cmd) {
             case 'm':
             case 'M':
                 return -14;  // Max current reading error
+            case 'l':
+            case 'L':
+                return -15;  // Target current reading error
             default:
-                return -15;  // Internal temperature reading error
+                return -16;  // Internal temperature reading error
         }
     }
 
@@ -202,6 +236,9 @@ float DPM8600::read(char cmd) {
         case 'm':
         case 'M':
             return result / 1000;  // Current has 3 decimals
+        case 'l':
+        case 'L':
+            return result / 1000;  // Current has 3 decimals
         default:
             return result;
     }
@@ -210,23 +247,23 @@ float DPM8600::read(char cmd) {
 // PRIVATE
 // ------------------------------
 bool DPM8600::listen(String &response) {
-            //Serial.print("RX: ");
-            unsigned long errorTimer = millis();
-            while ((millis() - errorTimer) < 250) {
-                if (_serial->available()) {
-                    char inChar = (char)_serial->read();
-                    //Serial.print(String(inChar));
-                    if (inChar == '\n') {
-                        // No need to implement response checking as no way to check whether the command was correct,
-                        // only received in a correct format. But format is always correct.
-                        return true;
-                    } else {
-                        response += inChar;
-                    }
-                }
+    // Serial.print("RX: ");
+    unsigned long errorTimer = millis();
+    while ((millis() - errorTimer) < 250) {
+        if (_serial->available()) {
+            char inChar = (char)_serial->read();
+            // Serial.print(String(inChar));
+            if (inChar == '\n') {
+                // No need to implement response checking as no way to check whether the command was correct,
+                // only received in a correct format. But format is always correct.
+                return true;
+            } else {
+                response += inChar;
             }
-            //Serial.print("");
-            return false;
+        }
+    }
+    // Serial.print("");
+    return false;
 }
 
 float DPM8600::processString(String str) {

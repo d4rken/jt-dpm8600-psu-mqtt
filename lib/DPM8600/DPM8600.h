@@ -59,6 +59,7 @@ class DPM8600 {
     int write(char cmd, float value);
     int writeVC(float v, float c);
     float read(char cmd);
+    String readRaw(String command);
 
    private:
     bool listen(String &response);

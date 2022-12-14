@@ -91,56 +91,62 @@ void updateSystemStats() {
 void processCommands() {
     Serial.println("### START: processCommands ###");
 
-    bool currentPowerState = converter.read('p') == 1;
+    int rawPowerState = converter.read('p');
+    if (rawPowerState != -12) {
+        bool currentPowerState = rawPowerState == 1;
+        if (!hasInitSettings) desiredPowerState = currentPowerState;
+        if (desiredPowerState != currentPowerState) {
+            Serial.println("Setting power state to " + String(desiredPowerState));
 
-    if (!hasInitSettings) desiredPowerState = currentPowerState;
-
-    if (desiredPowerState != currentPowerState) {
-        Serial.println("Setting power state to " + String(desiredPowerState));
-
-        bool success = converter.write('p', desiredPowerState);
-        if (success) {
-            Serial.println("Toggle power success");
+            bool success = converter.write('p', desiredPowerState);
+            if (success) {
+                Serial.println("Toggle power success");
+            } else {
+                Serial.println("Toggle power failed");
+            }
+            delay(600);
         } else {
-            Serial.println("Toggle power failed");
+            Serial.println("Desired power state already set to " + String(desiredPowerState));
         }
-    } else {
-        Serial.println("Desired power state already set to " + String(desiredPowerState));
     }
 
-    float currentMaxCurrent = converter.read('c');
+    float currentMaxCurrent = converter.read('l');
+    if (currentMaxCurrent != -15) {
+        Serial.println("Current max current set to " + String(currentMaxCurrent));
+        if (desiredMaxCurrent > 15) desiredMaxCurrent = 15;
+        if (!hasInitSettings) desiredMaxCurrent = currentMaxCurrent;
 
-    Serial.println("Current max current set to " + String(currentMaxCurrent));
-    if (desiredMaxCurrent > 15) desiredMaxCurrent = 15;
-
-    if (!hasInitSettings) desiredMaxCurrent = currentMaxCurrent;
-
-    if (desiredMaxCurrent != currentMaxCurrent) {
-        bool success = converter.write('c', desiredMaxCurrent);
-        if (success) {
-            Serial.println("New max current set to " + String(desiredMaxCurrent));
+        if (desiredMaxCurrent != currentMaxCurrent) {
+            bool success = converter.write('c', desiredMaxCurrent);
+            if (success) {
+                Serial.println("New max current set to " + String(desiredMaxCurrent));
+            } else {
+                Serial.println("Failed to set new max current");
+            }
+            delay(600);
         } else {
-            Serial.println("Failed to set new max current");
+            Serial.println("Desired max current already set to " + String(desiredMaxCurrent));
         }
-    } else {
-        Serial.println("Desired max current already set to " + String(desiredMaxCurrent));
     }
 
     float currentMaxVoltage = converter.read('v');
-    Serial.println("Current max voltage set to " + String(currentMaxVoltage));
-    if (desiredMaxVoltage > 48) desiredMaxVoltage = 35;
+    if (currentMaxVoltage != -10) {
+        Serial.println("Current max voltage set to " + String(currentMaxVoltage));
+        if (desiredMaxVoltage > 48) desiredMaxVoltage = 48;
 
-    if (!hasInitSettings) desiredMaxVoltage = currentMaxVoltage;
+        if (!hasInitSettings) desiredMaxVoltage = currentMaxVoltage;
 
-    if (desiredMaxVoltage != currentMaxVoltage) {
-        bool success = converter.write('v', desiredMaxVoltage);
-        if (success) {
-            Serial.println("New max voltage set to " + String(desiredMaxVoltage));
+        if (desiredMaxVoltage != currentMaxVoltage) {
+            bool success = converter.write('v', desiredMaxVoltage);
+            if (success) {
+                Serial.println("New max voltage set to " + String(desiredMaxVoltage));
+            } else {
+                Serial.println("Failed to set new max voltage");
+            }
+            delay(600);
         } else {
-            Serial.println("Failed to set new max voltage");
+            Serial.println("Desired max voltage already set to " + String(desiredMaxCurrent));
         }
-    } else {
-        Serial.println("Desired max current already set to " + String(desiredMaxCurrent));
     }
 
     hasInitSettings = true;
@@ -153,23 +159,33 @@ void updateStats() {
 
     float voltage = converter.read('v');
     Serial.println("Voltage: " + String(voltage));
-    client.publish("pv1/dcdc/voltage", dtostrf(voltage, 1, 2, dtostrfBuf));
+    if (voltage != -10) {
+        client.publish("pv1/dcdc/voltage", dtostrf(voltage, 1, 2, dtostrfBuf));
+    }
 
     float current = converter.read('c');
     Serial.println("Current: " + String(current));
-    client.publish("pv1/dcdc/current", dtostrf(current, 1, 2, dtostrfBuf));
+    if (current != -11) {
+        client.publish("pv1/dcdc/current", dtostrf(current, 1, 3, dtostrfBuf));
+    }
 
-    float maxCurrent = converter.read('m');
+    float maxCurrent = converter.read('l');
     Serial.println("Max current: " + String(maxCurrent));
-    client.publish("pv1/dcdc/limit", dtostrf(maxCurrent, 1, 2, dtostrfBuf));
+    if (maxCurrent != -15) {
+        client.publish("pv1/dcdc/limit", dtostrf(maxCurrent, 1, 3, dtostrfBuf));
+    }
 
     float power = converter.read('p');
     Serial.println("Power: " + String(power));
-    client.publish("pv1/dcdc/enabled", itoa(power, itoaBuf, 10));
+    if (power != -12) {
+        client.publish("pv1/dcdc/enabled", itoa(power, itoaBuf, 10));
+    }
 
     float temp = converter.read('t');
     Serial.println("Temp: " + String(temp));
-    client.publish("pv1/dcdc/temp", dtostrf(temp, 2, 2, dtostrfBuf));
+    if (temp != -16) {
+        client.publish("pv1/dcdc/temp", dtostrf(temp, 2, 2, dtostrfBuf));
+    }
 
     Serial.println("### END: updateStats ###");
 }
@@ -231,7 +247,7 @@ void loop() {
 
     client.loop();
 
-    if (lastCommandUpdate != lastCommandCheck && (millis() - lastCommands) > 500) {
+    if (lastCommandUpdate != lastCommandCheck && (millis() - lastCommands) > 1000) {
         digitalWrite(LED_BUILTIN, LOW);
         Serial.println("Checking for new commands...");
 
@@ -254,4 +270,9 @@ void loop() {
 
         digitalWrite(LED_BUILTIN, HIGH);
     }
+
+    //for (int i = 0; i < 40; i++) {
+    //    String result = converter.readRaw(String(i));
+    //    Serial.println("Read(" + String(i) + ") was " + result);
+    //}
 }
