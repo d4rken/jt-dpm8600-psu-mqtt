@@ -128,7 +128,7 @@ void processCommands() {
 
     float currentMaxVoltage = converter.read('v');
     Serial.println("Current max voltage set to " + String(currentMaxVoltage));
-    if (desiredMaxVoltage > 30) desiredMaxVoltage = 30;
+    if (desiredMaxVoltage > 48) desiredMaxVoltage = 35;
 
     if (!hasInitSettings) desiredMaxVoltage = currentMaxVoltage;
 
