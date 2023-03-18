@@ -14,6 +14,7 @@ const char *SSID = WIFI_SSID;
 const char *PSK = WIFI_PW;
 const char *MQTT_BROKER = MQTT_SERVER;
 const char *MQTT_BROKER_IP = MQTT_SERVER_IP;
+const char *MQTT_BROKER_PORT = MQTT_SERVER_PORT;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
