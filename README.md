@@ -14,3 +14,6 @@ Based on [@Lotiq's](https://github.com/Lotiq) library: https://github.com/Lotiq/
 
 
 <img src="https://raw.githubusercontent.com/d4rken/jt-dpm8600-psu-mqtt/main/.assets/pic1.jpg" width="400">
+
+## Wiring
+<img src="https://raw.githubusercontent.com/ps915/jt-dpm8600-psu-mqtt/main/.assets/DPM8600_WEMOS_D1_MQTT_WIRING.png" width="400">
