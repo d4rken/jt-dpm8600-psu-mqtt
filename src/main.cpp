@@ -54,7 +54,7 @@ void tick() {
 }
 
 void setupMqtt() {
-    client.setServer(MQTT_BROKER, MQTT_BROKER_PORT);
+    client.setServer(MQTT_BROKER, (uint16_t)strtol(MQTT_BROKER_PORT, NULL, 10));
     client.setCallback(mqttCallback);
 }
 
