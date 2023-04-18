@@ -24,11 +24,15 @@ DPM8600 converter(1);
 
 char buffer[256];
 
+const long SYSTEM_STAT_INTERVAL = 30 * 1000;
+
 bool hasInitSettings = false;
 float desiredMaxCurrent = 0;
 float desiredMaxVoltage = 0;
 bool desiredPowerState = false;
 float lastCommandUpdate = 0;
+unsigned long lastReceivedUpdate = 0;
+unsigned long lastMqttSetup = 0;
 
 void mqttCallback(char *_topic, byte *payload, unsigned int length) {
     String topic = String(_topic);
@@ -44,8 +48,11 @@ void mqttCallback(char *_topic, byte *payload, unsigned int length) {
         desiredMaxCurrent = atof(data_str);
     } else if (topic == "pv1/dcdc/command/max-voltage") {
         desiredMaxVoltage = atof(data_str);
+    } else if (topic == "pv1/dcdc/uptime") {
+        lastReceivedUpdate = atol(data_str);
     }
     lastCommandUpdate = millis();
+    client.loop();
 }
 
 void tick() {
@@ -53,9 +60,19 @@ void tick() {
     digitalWrite(LED_BUILTIN, !state);
 }
 
-void setupMqtt() {
-    client.setServer(MQTT_BROKER, (uint16_t)strtol(MQTT_BROKER_PORT, NULL, 10));
+void setupMqttSubs() {
+    Serial.println("MQTT Setup Subs: Setting callback");
+  
     client.setCallback(mqttCallback);
+    delay(200);
+    Serial.println("MQTT Setup Subs: Re-Subscribing");
+    client.subscribe("pv1/dcdc/uptime");  
+    client.subscribe("pv1/dcdc/command/power");
+    client.subscribe("pv1/dcdc/command/max-voltage");
+    client.subscribe("pv1/dcdc/command/max-current");
+
+    lastMqttSetup = millis();
+    Serial.println("MQTT Setup Subs: Done");     
 }
 
 void setup() {
@@ -70,7 +87,7 @@ void setup() {
     WiFi.hostname("PV1-DCDC-ESP8266");
     WiFi.begin(SSID, PSK);
 
-    setupMqtt();
+    client.setServer(MQTT_BROKER, (uint16_t)strtol(MQTT_BROKER_PORT, NULL, 10));
 
     bool success = converter.begin(&mySerial);
     Serial.println("Connected to DCDC: " + String(success));
@@ -242,10 +259,6 @@ void loop() {
             mqttConnected = false;
             break;
         } else {
-            if (retryMqtt == 2) {
-                Serial.println("MQTT DNS not resolved, trying IP...");
-                setupMqtt();
-            }
             retryMqtt++;
         }
         delay(500);
@@ -255,9 +268,15 @@ void loop() {
         Serial.println("Failed to connect to MQTT broker");
     } else if (!wasMqttConnected && mqttConnected) {
         Serial.println("Reconnected to MQTT broker");
-        client.subscribe("pv1/dcdc/command/power");
-        client.subscribe("pv1/dcdc/command/max-current");
-        client.subscribe("pv1/dcdc/command/max-voltage");
+        setupMqttSubs();
+    }
+
+    // If we are still connected, but no longer receiving callbacks, resubscribe.
+    unsigned long uptime = millis();
+    if(mqttConnected && uptime - lastReceivedUpdate > 10 * SYSTEM_STAT_INTERVAL && uptime - lastMqttSetup > 2 * SYSTEM_STAT_INTERVAL ) {
+        Serial.println("Callback no longer triggers: " + String(uptime));
+        client.publish("pv1/dcdc/error/callback_timeout", itoa(uptime, itoaBuf, 10), true);
+        setupMqttSubs();
     }
 
     ticker.detach();
@@ -277,7 +296,9 @@ void loop() {
         digitalWrite(LED_BUILTIN, HIGH);
     }
 
-    if ((millis() - lastStats) > 30 * 1000) {
+    client.loop();
+
+    if ((millis() - lastStats) > SYSTEM_STAT_INTERVAL) {
         digitalWrite(LED_BUILTIN, LOW);
         Serial.println("Updating statistics...");
         updateSystemStats();
@@ -288,8 +309,5 @@ void loop() {
         digitalWrite(LED_BUILTIN, HIGH);
     }
 
-    // for (int i = 0; i < 40; i++) {
-    //     String result = converter.readRaw(String(i));
-    //     Serial.println("Read(" + String(i) + ") was " + result);
-    // }
+    client.loop();
 }
