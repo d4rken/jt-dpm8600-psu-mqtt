@@ -103,7 +103,7 @@ void updateSystemStats() {
 
     unsigned long uptime = millis();
     Serial.println("Uptime: " + String(uptime));
-    client.publish("pv1/dcdc/uptime", itoa(uptime, itoaBuf, 10));
+    client.publish("pv1/dcdc/uptime", ultoa(uptime, itoaBuf, 10));
 }
 
 void processCommands() {
@@ -275,7 +275,7 @@ void loop() {
     unsigned long uptime = millis();
     if(mqttConnected && uptime - lastReceivedUpdate > 10 * SYSTEM_STAT_INTERVAL && uptime - lastMqttSetup > 2 * SYSTEM_STAT_INTERVAL ) {
         Serial.println("Callback no longer triggers: " + String(uptime));
-        client.publish("pv1/dcdc/error/callback_timeout", itoa(uptime, itoaBuf, 10), true);
+        client.publish("pv1/dcdc/error/callback_timeout", ultoa(uptime, itoaBuf, 10), true);
         setupMqttSubs();
     }
 
